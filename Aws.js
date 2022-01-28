@@ -4,11 +4,14 @@ import aws from "aws-sdk"
 
 const s3 = new aws.S3();
 
-s3.putObject({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
-  ACL: 'public-read'
+const multerS3Config = multerS3({
+  s3: s3,
+  bucket: process.env.AWS_BUCKET_NAME,
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  acl: 'public-read',
+  key: function (req, file, cb) {
+    cb(null, new Date().toISOString() + '-' + file.originalname)
+  }
 })
 
 const fileFilter = (req, file, cb) => {
@@ -18,7 +21,6 @@ const fileFilter = (req, file, cb) => {
       cb(null, false)
   }
 }
-
 const storage = multer.diskStorage({
   destination: (req, res, cb) => {
       cb(null, '../../../../temp')
@@ -27,17 +29,6 @@ const storage = multer.diskStorage({
       cb(null, new Date().toISOString() + '-' + file.originalname)
   }
 })
-
-const multerS3Config = multerS3({
-  s3: s3,
-  bucket: process.env.AWS_BUCKET_NAME,
-  metadata: function (req, file, cb) {
-      cb(null, { fieldName: file.fieldname });
-  },
-  key: function (req, file, cb) {
-      cb(null, new Date().toISOString() + '-' + file.originalname)
-  }
-});
 
 const upload = multer({
   storage: multerS3Config,
